@@ -23,11 +23,13 @@ export async function fetchJSearch(ctx: SourceContext): Promise<NormalizedJob[]>
 
   const out: NormalizedJob[] = [];
   for (const kw of ctx.keywords.slice(0, 3)) {
-    const u = new URL("https://jsearch.p.rapidapi.com/search");
+    const u = new URL("https://jsearch.p.rapidapi.com/search-v2");
     u.searchParams.set("query", `${kw} in ${ctx.location}`);
     u.searchParams.set("page", "1");
     u.searchParams.set("num_pages", "1");
-    if (ctx.remote) u.searchParams.set("remote_jobs_only", "true");
+    u.searchParams.set("country", "ca");
+    u.searchParams.set("date_posted", "month");
+    if (ctx.remote) u.searchParams.set("work_from_home", "true");
 
     const r = await fetch(u, {
       cache: "no-store",
