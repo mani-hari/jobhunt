@@ -16,7 +16,9 @@ export function Sidebar() {
   return (
     <aside className="w-60 shrink-0 border-r border-line bg-bg-card sticky top-0 h-screen flex flex-col">
       <div className="px-6 py-7">
-        <div className="font-serif text-xl font-semibold text-ink-primary leading-tight">Job Hunter</div>
+        <div className="font-serif text-xl font-semibold text-ink-primary leading-tight">
+          ARCS Job Hunter
+        </div>
         <div className="text-xs text-ink-muted mt-1">Archana&rsquo;s workspace</div>
       </div>
       <nav className="flex-1 px-3 space-y-1">

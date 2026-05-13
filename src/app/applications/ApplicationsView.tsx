@@ -11,6 +11,13 @@ import { scoreColor, timeAgo } from "@/lib/format";
 import { STATUS_LABEL, type JobStatus } from "@/lib/types";
 import type { Job } from "@/components/jobs/types";
 
+function paneText(job: Job, pane: Exclude<Pane, null>): string | null {
+  if (pane === "resume") return job.generatedResume;
+  if (pane === "cover") return job.generatedCover;
+  if (pane === "email") return job.generatedEmail;
+  return job.fitAnalysis;
+}
+
 const STATUSES: JobStatus[] = [
   "resume_generated",
   "applied",
@@ -20,7 +27,14 @@ const STATUSES: JobStatus[] = [
   "hold",
 ];
 
-type Pane = "resume" | "cover" | "fit" | null;
+type Pane = "resume" | "cover" | "email" | "fit" | null;
+
+const PANE_LABEL: Record<Exclude<Pane, null>, string> = {
+  resume: "Tailored resume",
+  cover: "Cover letter",
+  email: "Outreach email",
+  fit: "Fit analysis",
+};
 
 export function ApplicationsView() {
   const qc = useQueryClient();
@@ -108,6 +122,9 @@ export function ApplicationsView() {
                   <Button size="sm" variant="secondary" onClick={() => { setOpenJob(j); setPane("cover"); }}>
                     Cover letter
                   </Button>
+                  <Button size="sm" variant="secondary" onClick={() => { setOpenJob(j); setPane("email"); }}>
+                    Email
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => { setOpenJob(j); setPane("fit"); }}>
                     Fit
                   </Button>
@@ -124,18 +141,14 @@ export function ApplicationsView() {
       <SlideOver
         open={!!openJob && !!pane}
         onClose={() => { setOpenJob(null); setPane(null); }}
-        title={
-          openJob
-            ? `${pane === "resume" ? "Tailored resume" : pane === "cover" ? "Cover letter" : "Fit analysis"} · ${openJob.title}`
-            : ""
-        }
+        title={openJob && pane ? `${PANE_LABEL[pane]} · ${openJob.title}` : ""}
         footer={
-          openJob && pane !== "fit" ? (
+          openJob && pane && pane !== "fit" ? (
             <div className="flex justify-end gap-2">
               <Button
                 variant="secondary"
                 onClick={() => {
-                  const text = pane === "resume" ? openJob.generatedResume : openJob.generatedCover;
+                  const text = paneText(openJob, pane);
                   if (text) navigator.clipboard.writeText(text);
                 }}
               >
@@ -143,7 +156,7 @@ export function ApplicationsView() {
               </Button>
               <Button
                 onClick={() => {
-                  const text = (pane === "resume" ? openJob.generatedResume : openJob.generatedCover) ?? "";
+                  const text = paneText(openJob, pane) ?? "";
                   const blob = new Blob([text], { type: "text/markdown" });
                   const url = URL.createObjectURL(blob);
                   const a = document.createElement("a");
@@ -159,14 +172,12 @@ export function ApplicationsView() {
           ) : null
         }
       >
-        {openJob ? (
+        {openJob && pane ? (
           <div className="px-6 py-5 prose-body text-sm">
-            {pane === "resume" ? (
-              <ReactMarkdown>{openJob.generatedResume ?? "_No resume generated yet._"}</ReactMarkdown>
-            ) : pane === "cover" ? (
-              <ReactMarkdown>{openJob.generatedCover ?? "_No cover letter generated yet._"}</ReactMarkdown>
-            ) : (
+            {pane === "fit" ? (
               <p>{openJob.fitAnalysis ?? "No fit analysis available."}</p>
+            ) : (
+              <ReactMarkdown>{paneText(openJob, pane) ?? `_No ${PANE_LABEL[pane].toLowerCase()} generated yet._`}</ReactMarkdown>
             )}
           </div>
         ) : null}

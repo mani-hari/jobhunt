@@ -3,6 +3,9 @@
 -- Safe to run multiple times: tables use IF NOT EXISTS where possible;
 -- seed inserts use ON CONFLICT DO NOTHING.
 
+-- Migration helper for older deployments (adds new columns idempotently):
+ALTER TABLE IF EXISTS "Job" ADD COLUMN IF NOT EXISTS "generatedEmail" TEXT;
+
 -- ---------- Schema ----------
 
 CREATE TABLE IF NOT EXISTS "Keyword" (
@@ -38,6 +41,7 @@ CREATE TABLE IF NOT EXISTS "Job" (
     "appliedAt" TIMESTAMP(3),
     "generatedResume" TEXT,
     "generatedCover" TEXT,
+    "generatedEmail" TEXT,
     "fitAnalysis" TEXT,
     CONSTRAINT "Job_pkey" PRIMARY KEY ("id")
 );

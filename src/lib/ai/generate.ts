@@ -4,6 +4,7 @@ import { geminiText, isGeminiConfigured } from "@/lib/gemini";
 interface GenerationResult {
   resume: string;
   coverLetter: string;
+  outreachEmail: string;
   fitAnalysis: string;
 }
 
@@ -74,10 +75,32 @@ JOB:
 Title: ${job.title} at ${job.company}
 Description: ${job.description.slice(0, 3000)}`;
 
-  const [resumeMd, coverMd, fitText] = await Promise.all([
+  const emailPrompt = `Write a short outreach email to a recruiter or hiring manager at ${job.company}
+about the ${job.title} role.
+
+CANDIDATE:
+${resume.rawText.slice(0, 3500)}
+
+JOB:
+Title: ${job.title} at ${job.company}
+Description: ${job.description.slice(0, 2500)}
+
+STYLE:
+- Warm, confident, concise — under 150 words.
+- Include a subject line on the first line in this format: "Subject: ..."
+- Then 3 short paragraphs: (1) why you're reaching out about this specific role,
+  (2) one or two concrete matching strengths, (3) an ask — a quick chat or
+  feedback on your application.
+- Address career gap naturally if relevant: "${careerGap}"
+- Sign off with "Warm regards," followed by the candidate's name from the resume.
+
+Return as clean Markdown.`;
+
+  const [resumeMd, coverMd, fitText, emailMd] = await Promise.all([
     geminiText(resumePrompt, undefined, 4096),
     geminiText(coverPrompt, undefined, 2048),
     geminiText(fitPrompt, undefined, 512),
+    geminiText(emailPrompt, undefined, 1024),
   ]);
 
   await prisma.job.update({
@@ -85,10 +108,11 @@ Description: ${job.description.slice(0, 3000)}`;
     data: {
       generatedResume: resumeMd,
       generatedCover: coverMd,
+      generatedEmail: emailMd,
       fitAnalysis: fitText,
       status: "resume_generated",
     },
   });
 
-  return { resume: resumeMd, coverLetter: coverMd, fitAnalysis: fitText };
+  return { resume: resumeMd, coverLetter: coverMd, outreachEmail: emailMd, fitAnalysis: fitText };
 }
