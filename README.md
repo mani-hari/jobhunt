@@ -10,8 +10,15 @@ Archana Hariharan's job search in Canada.
 
 ## What it does
 
-- Aggregates job listings from Adzuna, JSearch (RapidAPI), RemoteOK, and the
-  Canadian Job Bank based on configurable keyword profiles.
+- Aggregates job listings from:
+  - **Adzuna** (free, 250/day) — Canada-wide job board aggregator
+  - **JSearch via RapidAPI** (free, 200/mo) — pulls LinkedIn / Indeed / Glassdoor
+  - **RemoteOK** (free, no key) — remote-first roles
+  - **Canada Job Bank** (free) — official Canadian listings
+  - **Greenhouse / Lever / Ashby** (free, no key) — direct ATS feeds for
+    companies you track in Settings → Company Boards
+  - **Google Programmable Search** (free, 100/day) — `site:linkedin.com/jobs`
+    style queries to surface postings the APIs miss
 - Scores each role against your profile via Gemini.
 - Lets you shortlist roles, generate tailored resumes + cover letters + fit
   analyses, and track applications through a simple pipeline.

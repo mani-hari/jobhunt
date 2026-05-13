@@ -2,6 +2,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { KeywordManager } from "./KeywordManager";
 import { ResumeManager } from "./ResumeManager";
 import { PreferencesForm } from "./PreferencesForm";
+import { CompanyBoardManager } from "./CompanyBoardManager";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,15 @@ export default function SettingsPage() {
           <ResumeManager />
         </section>
         <section>
-          <SectionTitle eyebrow="03" title="What you're looking for" subtitle="These preferences feed every job's fit score." />
+          <SectionTitle
+            eyebrow="03"
+            title="Company boards"
+            subtitle="Track jobs from specific companies via Greenhouse, Lever, and Ashby — fully free, no API key needed."
+          />
+          <CompanyBoardManager />
+        </section>
+        <section>
+          <SectionTitle eyebrow="04" title="What you're looking for" subtitle="These preferences feed every job's fit score." />
           <PreferencesForm />
         </section>
       </div>

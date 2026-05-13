@@ -53,6 +53,17 @@ model Resume {
   uploadedAt DateTime @default(now())
 }
 
+model CompanyBoard {
+  id        String   @id @default(cuid())
+  ats       String   // "greenhouse" | "lever" | "ashby"
+  slug      String   // board slug, e.g. "stripe"
+  name      String   // human-readable label
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([ats, slug])
+}
+
 model Settings {
   id                  String  @id @default("singleton")
   preferredLocation   String  @default("Toronto, Canada")

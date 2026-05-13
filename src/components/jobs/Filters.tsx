@@ -35,7 +35,7 @@ const TYPE = ["remote", "onsite", "hybrid"];
 const EMPLOYMENT = ["fulltime", "parttime", "contract"];
 const LEVEL = ["entry", "mid", "senior", "lead"];
 const INDUSTRY = ["Banking", "Fintech", "Insurance", "Tech", "Government", "Other"];
-const SOURCE = ["adzuna", "jsearch", "remoteok", "jobbank"];
+const SOURCE = ["adzuna", "jsearch", "remoteok", "jobbank", "greenhouse", "lever", "ashby", "google"];
 const SCORE_OPTS: Array<{ label: string; value: number | null }> = [
   { label: "All", value: null },
   { label: "≥40", value: 40 },
