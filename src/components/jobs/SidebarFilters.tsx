@@ -200,3 +200,33 @@ export function filterToQuery(f: FilterState): string {
   if (f.minScore != null) sp.set("minScore", String(f.minScore));
   return sp.toString();
 }
+
+const ALLOWED_RANGE: FilterState["range"][] = ["24h", "7d", "30d", "7w", "all"];
+
+export function filterFromSearchParams(sp: URLSearchParams | ReadonlyURLSearchParamsLike): FilterState {
+  const get = (k: string) => (sp.get ? sp.get(k) : null);
+  const rangeRaw = get("range") ?? "7d";
+  const range = (ALLOWED_RANGE as string[]).includes(rangeRaw)
+    ? (rangeRaw as FilterState["range"])
+    : "7d";
+  const list = (k: string) => {
+    const v = get(k);
+    return v ? v.split(",").filter(Boolean) : [];
+  };
+  const minScoreRaw = get("minScore");
+  const minScore = minScoreRaw ? Number(minScoreRaw) : null;
+  return {
+    range,
+    type: list("type"),
+    employment: list("employment"),
+    level: list("level"),
+    industry: list("industry"),
+    source: list("source"),
+    minScore: minScore != null && !Number.isNaN(minScore) ? minScore : null,
+  };
+}
+
+// Loose type compatible with both URLSearchParams and Next.js ReadonlyURLSearchParams
+interface ReadonlyURLSearchParamsLike {
+  get(name: string): string | null;
+}

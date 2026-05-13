@@ -6,7 +6,8 @@ export type JobStatus =
   | "interview"
   | "offer"
   | "rejected"
-  | "hold";
+  | "hold"
+  | "deleted";
 
 export type JobType = "remote" | "onsite" | "hybrid";
 export type Employment = "fulltime" | "parttime" | "contract";
@@ -45,4 +46,5 @@ export const STATUS_LABEL: Record<JobStatus, string> = {
   offer: "Offer",
   rejected: "Rejected",
   hold: "On Hold",
+  deleted: "Deleted",
 };

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
 import { ScoreBar } from "./ScoreBar";
@@ -12,27 +13,27 @@ interface Props {
   job: Job;
   selected: boolean;
   onToggleSelect: () => void;
-  onView: () => void;
   onShortlist?: () => void;
   onRemove?: () => void;
   onGenerate?: () => void;
   onApply?: () => void;
   generating?: boolean;
+  detailHref?: string;
 }
 
 export function JobRow({
   job,
   selected,
   onToggleSelect,
-  onView,
   onShortlist,
   onRemove,
   onGenerate,
   onApply,
   generating,
+  detailHref = `/jobs/${job.id}`,
 }: Props) {
   const blurb = companyBlurb(job.description, job.company);
-  const isShortlisted = job.status !== "discovered";
+  const isShortlisted = job.status !== "discovered" && job.status !== "deleted";
   const isApplied = job.appliedAt != null;
 
   return (
@@ -56,11 +57,11 @@ export function JobRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="min-w-0">
-              <button onClick={onView} className="text-left w-full">
-                <h3 className="font-serif text-lg font-semibold text-ink-primary leading-snug">
+              <Link href={detailHref} className="block group">
+                <h3 className="font-serif text-lg font-semibold text-ink-primary leading-snug group-hover:text-accent-blue transition">
                   {job.title}
                 </h3>
-              </button>
+              </Link>
               <div className="text-sm text-ink-secondary mt-0.5">
                 <span className="font-medium text-ink-primary">{job.company}</span>
                 <span className="text-ink-muted"> · </span>
@@ -93,9 +94,9 @@ export function JobRow({
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={onView}>
-              View details
-            </Button>
+            <Link href={detailHref}>
+              <Button size="sm" variant="secondary">View details</Button>
+            </Link>
 
             {onShortlist && !isShortlisted ? (
               <Button size="sm" onClick={onShortlist}>

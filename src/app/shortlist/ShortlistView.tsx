@@ -6,13 +6,11 @@ import { Empty } from "@/components/ui/Empty";
 import { Button } from "@/components/ui/Button";
 import { BulkBar } from "@/components/jobs/BulkBar";
 import { JobRow } from "@/components/jobs/JobRow";
-import { JobDetail } from "@/components/jobs/JobDetail";
 import type { Job } from "@/components/jobs/types";
 
 export function ShortlistView() {
   const qc = useQueryClient();
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [detail, setDetail] = useState<Job | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data = [], isLoading } = useQuery<Job[]>({
@@ -24,14 +22,16 @@ export function ShortlistView() {
     },
   });
 
+  const patch = async (id: string, status: string) => {
+    await fetch(`/api/jobs/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+  };
+
   const removeMut = useMutation({
-    mutationFn: async (id: string) => {
-      await fetch(`/api/jobs/${id}`, {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ status: "discovered" }),
-      });
-    },
+    mutationFn: (id: string) => patch(id, "discovered"),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["stats"] });
@@ -60,6 +60,18 @@ export function ShortlistView() {
     setSelected(new Set());
   };
 
+  const bulkDelete = async () => {
+    if (selected.size === 0) return;
+    const ok = window.confirm(
+      `Permanently delete ${selected.size} job${selected.size === 1 ? "" : "s"}? They won't be re-fetched on future refreshes.`
+    );
+    if (!ok) return;
+    await Promise.all(Array.from(selected).map((id) => patch(id, "deleted")));
+    setSelected(new Set());
+    qc.invalidateQueries({ queryKey: ["jobs"] });
+    qc.invalidateQueries({ queryKey: ["stats"] });
+  };
+
   const toggle = (id: string) => {
     const next = new Set(selected);
     if (next.has(id)) next.delete(id);
@@ -79,6 +91,12 @@ export function ShortlistView() {
 
   return (
     <>
+      <div className="flex items-center justify-between text-sm text-ink-secondary mb-3">
+        <span className="font-semibold text-ink-primary">
+          {data.length} job{data.length === 1 ? "" : "s"} shortlisted
+        </span>
+      </div>
+
       <div className="space-y-3">
         {data.map((job) => (
           <JobRow
@@ -86,7 +104,6 @@ export function ShortlistView() {
             job={job}
             selected={selected.has(job.id)}
             onToggleSelect={() => toggle(job.id)}
-            onView={() => setDetail(job)}
             onGenerate={() => generateOne(job.id)}
             onRemove={() => removeMut.mutate(job.id)}
             generating={busyId === job.id}
@@ -95,9 +112,7 @@ export function ShortlistView() {
       </div>
 
       <BulkBar count={selected.size} onClear={() => setSelected(new Set())}>
-        <Button size="sm" onClick={bulkGenerate}>
-          Generate materials for selected
-        </Button>
+        <Button size="sm" onClick={bulkGenerate}>Generate materials for selected</Button>
         <Button
           size="sm"
           variant="secondary"
@@ -106,11 +121,10 @@ export function ShortlistView() {
             setSelected(new Set());
           }}
         >
-          Remove
+          Unshortlist
         </Button>
+        <Button size="sm" variant="danger" onClick={bulkDelete}>Delete</Button>
       </BulkBar>
-
-      <JobDetail job={detail} onClose={() => setDetail(null)} />
     </>
   );
 }

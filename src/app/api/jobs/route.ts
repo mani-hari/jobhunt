@@ -43,6 +43,9 @@ export async function GET(req: Request) {
     } else {
       where.status = status;
     }
+  } else {
+    // Exclude deleted-by-user jobs from the default feed.
+    where.status = { not: "deleted" };
   }
 
   if (minScore) where.score = { gte: Number(minScore) };
