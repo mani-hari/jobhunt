@@ -11,6 +11,7 @@ interface JSearchJob {
   job_apply_link: string;
   job_posted_at_datetime_utc?: string;
   job_employment_type?: string;
+  job_employment_types?: string[];
   job_is_remote?: boolean;
   job_min_salary?: number;
   job_max_salary?: number;
@@ -39,8 +40,13 @@ export async function fetchJSearch(ctx: SourceContext): Promise<NormalizedJob[]>
       },
     });
     if (!r.ok) continue;
-    const data = (await r.json()) as { data?: JSearchJob[] };
-    for (const j of data.data ?? []) {
+    // search-v2 wraps results: { status, data: { jobs: [...] } }
+    // (the legacy /search endpoint had { data: [...] } directly)
+    const body = (await r.json()) as { data?: JSearchJob[] | { jobs?: JSearchJob[] } };
+    const jobs: JSearchJob[] = Array.isArray(body.data)
+      ? body.data
+      : body.data?.jobs ?? [];
+    for (const j of jobs) {
       const loc = [j.job_city, j.job_state, j.job_country].filter(Boolean).join(", ") || ctx.location;
       out.push({
         title: j.job_title,
@@ -50,7 +56,7 @@ export async function fetchJSearch(ctx: SourceContext): Promise<NormalizedJob[]>
         sourceUrl: j.job_apply_link,
         source: "jsearch",
         postedAt: j.job_posted_at_datetime_utc ? new Date(j.job_posted_at_datetime_utc) : null,
-        employment: mapEmployment(j.job_employment_type),
+        employment: mapEmployment(j.job_employment_types?.[0] ?? j.job_employment_type),
         jobType: j.job_is_remote ? "remote" : null,
         salaryMin: j.job_min_salary ?? null,
         salaryMax: j.job_max_salary ?? null,

@@ -13,27 +13,28 @@ const DEFAULT_KEYWORDS = [
 // Curated starter list of Canadian / Canada-friendly employers across fintech,
 // banking-adjacent, insurance, and tech. Edit freely in /settings.
 const DEFAULT_COMPANY_BOARDS: Array<{ ats: string; slug: string; name: string }> = [
-  // Greenhouse
-  { ats: "greenhouse", slug: "wealthsimple", name: "Wealthsimple" },
-  { ats: "greenhouse", slug: "shopify", name: "Shopify" },
+  // Greenhouse — verified slugs (Canadian-first, then US tech with Canada/remote presence)
   { ats: "greenhouse", slug: "hootsuite", name: "Hootsuite" },
-  { ats: "greenhouse", slug: "ada", name: "Ada" },
-  { ats: "greenhouse", slug: "ritualco", name: "Ritual" },
   { ats: "greenhouse", slug: "thinkific", name: "Thinkific" },
-  { ats: "greenhouse", slug: "clio", name: "Clio" },
-  { ats: "greenhouse", slug: "coinbase", name: "Coinbase" },
+  { ats: "greenhouse", slug: "later", name: "Later" },
+  { ats: "greenhouse", slug: "stripe", name: "Stripe" },
+  { ats: "greenhouse", slug: "airbnb", name: "Airbnb" },
+  { ats: "greenhouse", slug: "figma", name: "Figma" },
+  { ats: "greenhouse", slug: "asana", name: "Asana" },
+  { ats: "greenhouse", slug: "dropbox", name: "Dropbox" },
+  { ats: "greenhouse", slug: "vercel", name: "Vercel" },
+  { ats: "greenhouse", slug: "robinhood", name: "Robinhood" },
+  { ats: "greenhouse", slug: "klaviyo", name: "Klaviyo" },
+  { ats: "greenhouse", slug: "airtable", name: "Airtable" },
+  { ats: "greenhouse", slug: "samsara", name: "Samsara" },
   // Lever
-  { ats: "lever", slug: "neo", name: "Neo Financial" },
-  { ats: "lever", slug: "koho", name: "KOHO" },
-  { ats: "lever", slug: "borrowell", name: "Borrowell" },
-  { ats: "lever", slug: "drwealth", name: "DRWealth" },
-  { ats: "lever", slug: "ledn", name: "Ledn" },
-  { ats: "lever", slug: "bitbuy", name: "Bitbuy" },
+  { ats: "lever", slug: "metabase", name: "Metabase" },
   // Ashby
   { ats: "ashby", slug: "ramp", name: "Ramp" },
   { ats: "ashby", slug: "linear", name: "Linear" },
   { ats: "ashby", slug: "vanta", name: "Vanta" },
   { ats: "ashby", slug: "openai", name: "OpenAI" },
+  { ats: "ashby", slug: "posthog", name: "PostHog" },
 ];
 
 async function main() {

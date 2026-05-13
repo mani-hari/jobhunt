@@ -91,23 +91,25 @@ INSERT INTO "Keyword" ("id", "original", "canonicalTitles") VALUES
   ('seed_ai',  'AI Automation Specialist',  '["AI Automation Specialist","Intelligent Automation Analyst","RPA Analyst","AI Operations Specialist"]')
 ON CONFLICT ("id") DO NOTHING;
 
+-- Verified ATS slugs (probed against each board API). Add more from /settings.
 INSERT INTO "CompanyBoard" ("id", "ats", "slug", "name") VALUES
-  ('seed_gh_wealthsimple', 'greenhouse', 'wealthsimple', 'Wealthsimple'),
-  ('seed_gh_shopify',      'greenhouse', 'shopify',      'Shopify'),
-  ('seed_gh_hootsuite',    'greenhouse', 'hootsuite',    'Hootsuite'),
-  ('seed_gh_ada',          'greenhouse', 'ada',          'Ada'),
-  ('seed_gh_ritual',       'greenhouse', 'ritualco',     'Ritual'),
-  ('seed_gh_thinkific',    'greenhouse', 'thinkific',    'Thinkific'),
-  ('seed_gh_clio',         'greenhouse', 'clio',         'Clio'),
-  ('seed_gh_coinbase',     'greenhouse', 'coinbase',     'Coinbase'),
-  ('seed_lv_neo',          'lever',      'neo',          'Neo Financial'),
-  ('seed_lv_koho',         'lever',      'koho',         'KOHO'),
-  ('seed_lv_borrowell',    'lever',      'borrowell',    'Borrowell'),
-  ('seed_lv_drwealth',     'lever',      'drwealth',     'DRWealth'),
-  ('seed_lv_ledn',         'lever',      'ledn',         'Ledn'),
-  ('seed_lv_bitbuy',       'lever',      'bitbuy',       'Bitbuy'),
-  ('seed_ab_ramp',         'ashby',      'ramp',         'Ramp'),
-  ('seed_ab_linear',       'ashby',      'linear',       'Linear'),
-  ('seed_ab_vanta',        'ashby',      'vanta',        'Vanta'),
-  ('seed_ab_openai',       'ashby',      'openai',       'OpenAI')
+  ('seed_gh_hootsuite', 'greenhouse', 'hootsuite', 'Hootsuite'),
+  ('seed_gh_thinkific', 'greenhouse', 'thinkific', 'Thinkific'),
+  ('seed_gh_later',     'greenhouse', 'later',     'Later'),
+  ('seed_gh_stripe',    'greenhouse', 'stripe',    'Stripe'),
+  ('seed_gh_airbnb',    'greenhouse', 'airbnb',    'Airbnb'),
+  ('seed_gh_figma',     'greenhouse', 'figma',     'Figma'),
+  ('seed_gh_asana',     'greenhouse', 'asana',     'Asana'),
+  ('seed_gh_dropbox',   'greenhouse', 'dropbox',   'Dropbox'),
+  ('seed_gh_vercel',    'greenhouse', 'vercel',    'Vercel'),
+  ('seed_gh_robinhood', 'greenhouse', 'robinhood', 'Robinhood'),
+  ('seed_gh_klaviyo',   'greenhouse', 'klaviyo',   'Klaviyo'),
+  ('seed_gh_airtable',  'greenhouse', 'airtable',  'Airtable'),
+  ('seed_gh_samsara',   'greenhouse', 'samsara',   'Samsara'),
+  ('seed_lv_metabase',  'lever',      'metabase',  'Metabase'),
+  ('seed_ab_ramp',      'ashby',      'ramp',      'Ramp'),
+  ('seed_ab_linear',    'ashby',      'linear',    'Linear'),
+  ('seed_ab_vanta',     'ashby',      'vanta',     'Vanta'),
+  ('seed_ab_openai',    'ashby',      'openai',    'OpenAI'),
+  ('seed_ab_posthog',   'ashby',      'posthog',   'PostHog')
 ON CONFLICT ("ats","slug") DO NOTHING;
