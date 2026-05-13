@@ -5,7 +5,6 @@ import ws from "ws";
 
 // Required for Neon's WebSocket driver in Node.js runtimes (and harmless in edge).
 if (typeof WebSocket === "undefined") {
-  // @ts-expect-error - ws shims the global for Neon's serverless driver
   neonConfig.webSocketConstructor = ws;
 }
 
