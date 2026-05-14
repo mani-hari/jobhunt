@@ -12,7 +12,7 @@
     "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@anthropic-ai/sdk": "^0.96.0",
     "@neondatabase/serverless": "^0.10.3",
     "@prisma/adapter-neon": "^5.22.0",
     "@prisma/client": "^5.22.0",

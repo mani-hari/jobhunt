@@ -38,10 +38,11 @@ model Job {
   status          String    @default("discovered")
   shortlistedAt   DateTime?
   appliedAt       DateTime?
-  generatedResume String?
-  generatedCover  String?
-  generatedEmail  String?
-  fitAnalysis     String?
+  generatedResume    String?
+  generatedResumeAlt String?
+  generatedCover     String?
+  generatedEmail     String?
+  fitAnalysis        String?
 
   @@index([status])
   @@index([fetchedAt])

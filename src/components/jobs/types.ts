@@ -21,6 +21,7 @@ export interface Job {
   shortlistedAt: string | null;
   appliedAt: string | null;
   generatedResume: string | null;
+  generatedResumeAlt: string | null;
   generatedCover: string | null;
   generatedEmail: string | null;
   fitAnalysis: string | null;

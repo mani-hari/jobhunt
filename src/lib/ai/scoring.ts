@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { geminiJson, isGeminiConfigured } from "@/lib/gemini";
+import { isAnthropicConfigured, scoreJob } from "@/lib/anthropic";
 import type { ScoreDetails } from "@/lib/types";
 
 interface SettingsLike {
@@ -32,54 +32,72 @@ async function loadSettings(): Promise<SettingsLike> {
 export async function scoreJobById(id: string): Promise<ScoreDetails | null> {
   const job = await prisma.job.findUnique({ where: { id } });
   if (!job) return null;
-  if (!isGeminiConfigured()) return null;
+  if (!isAnthropicConfigured()) return null;
 
   const settings = await loadSettings();
-
-  const prompt = `You are an expert career advisor. Score how well this job matches the candidate.
-
-CANDIDATE PROFILE:
-- Experience: ${settings.yearsExperience} years in ${settings.preferredIndustries.join(", ")}
-- Key skills: ${settings.keyStrengths.join(", ")}
-- Location preference: ${settings.preferredLocation}, Remote: ${settings.openToRemote ? "yes" : "no"}
-- Deal-breakers: ${settings.dealBreakers ?? "none"}
-- Career context: ${settings.careerGapNote}
-
-JOB POSTING:
-Title: ${job.title}
-Company: ${job.company}
-Location: ${job.location}
-Type: ${job.jobType ?? "unspecified"}
-Employment: ${job.employment ?? "unspecified"}
-Description: ${job.description.slice(0, 6000)}
-
-Score this job from 0-100 on practical fit. Be REALISTIC, not aspirational.
-Consider:
-- Skills match (40% weight)
-- Location/remote compatibility (20% weight)
-- Industry/domain relevance (20% weight)
-- Seniority fit (10% weight)
-- Career gap friendliness — does posting mention "returners" or flexible requirements? (10% weight)
-
-Return JSON only:
-{
-  "score": 72,
-  "summary": "One sentence on why this score",
-  "strengths": ["strength 1", "strength 2"],
-  "gaps": ["gap 1"],
-  "tip": "One actionable tip for applying"
-}`;
-
-  const result = await geminiJson<ScoreDetails>(prompt);
+  const result = await scoreJob({
+    title: job.title,
+    company: job.company,
+    location: job.location,
+    jobType: job.jobType,
+    employment: job.employment,
+    description: job.description,
+    ...settings,
+  });
 
   await prisma.job.update({
     where: { id },
     data: {
-      score: Math.max(0, Math.min(100, Math.round(result.score))),
+      score: result.score,
       scoreSummary: result.summary,
       scoreDetails: JSON.stringify(result),
     },
   });
 
   return result;
+}
+
+export async function scoreUnscoredJobs(limit = 50): Promise<{ scored: number; failed: number; remaining: number }> {
+  if (!isAnthropicConfigured()) return { scored: 0, failed: 0, remaining: 0 };
+
+  const settings = await loadSettings();
+  const candidates = await prisma.job.findMany({
+    where: { score: null, status: { not: "deleted" } },
+    orderBy: [{ postedAt: "desc" }, { fetchedAt: "desc" }],
+    take: limit,
+  });
+
+  let scored = 0;
+  let failed = 0;
+  for (const job of candidates) {
+    try {
+      const result = await scoreJob({
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        jobType: job.jobType,
+        employment: job.employment,
+        description: job.description,
+        ...settings,
+      });
+      await prisma.job.update({
+        where: { id: job.id },
+        data: {
+          score: result.score,
+          scoreSummary: result.summary,
+          scoreDetails: JSON.stringify(result),
+        },
+      });
+      scored++;
+    } catch (err) {
+      console.error(`[auto-score] job ${job.id} failed`, err);
+      failed++;
+    }
+  }
+
+  const remaining = await prisma.job.count({
+    where: { score: null, status: { not: "deleted" } },
+  });
+
+  return { scored, failed, remaining };
 }

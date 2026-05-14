@@ -61,6 +61,18 @@ export function JobsView() {
     },
   });
 
+  const autoScoreMut = useMutation({
+    mutationFn: async () => {
+      const r = await fetch("/api/jobs/auto-score?limit=50", { method: "POST" });
+      if (!r.ok) throw new Error("Auto-score failed");
+      return r.json() as Promise<{ scored: number; failed: number; remaining: number }>;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+
   const startRefresh = () => {
     setConfirmRefresh(false);
     refreshMut.mutate();
@@ -146,11 +158,17 @@ export function JobsView() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="font-serif text-xl font-semibold text-ink-primary">Job feed</h2>
         <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            onClick={() => autoScoreMut.mutate()}
+            disabled={autoScoreMut.isPending}
+            title="Score all unscored jobs against your resume + preferences with Claude Haiku"
+          >
+            {autoScoreMut.isPending ? "Rating jobs…" : "Auto-rate jobs ✨"}
+          </Button>
           {refreshMut.isPending ? (
             <>
-              <span className="text-xs text-ink-muted animate-pulse">
-                Scraping {/* sources */}…
-              </span>
+              <span className="text-xs text-ink-muted animate-pulse">Scraping…</span>
               <Button variant="danger" onClick={cancelRefresh}>
                 Cancel refresh
               </Button>
@@ -165,6 +183,19 @@ export function JobsView() {
         <div className="text-xs text-ink-muted -mt-3">
           Last refresh added {refreshMut.data.inserted} new · skipped {refreshMut.data.skipped} duplicates ·
           {" "}{refreshMut.data.fetched} fetched across {refreshMut.data.keywordsUsed} keyword variants.
+        </div>
+      ) : null}
+
+      {autoScoreMut.data ? (
+        <div className="text-xs text-ink-muted -mt-3">
+          Auto-rated {autoScoreMut.data.scored} job{autoScoreMut.data.scored === 1 ? "" : "s"}
+          {autoScoreMut.data.failed > 0 ? ` (${autoScoreMut.data.failed} failed)` : ""} ·
+          {" "}{autoScoreMut.data.remaining} still unrated. Filter by score above to focus.
+        </div>
+      ) : null}
+      {autoScoreMut.isError ? (
+        <div className="text-xs text-accent-red -mt-3">
+          Auto-rate failed: {(autoScoreMut.error as Error).message}
         </div>
       ) : null}
 
@@ -209,6 +240,7 @@ export function JobsView() {
                 onShortlist={() => shortlistMut.mutate(job.id)}
                 onGenerate={() => generateOne(job.id)}
                 generating={busyId === job.id}
+                filterQuery={filterToQuery(filters)}
               />
             ))
           )}

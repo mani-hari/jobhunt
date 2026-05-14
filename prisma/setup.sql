@@ -5,6 +5,7 @@
 
 -- Migration helper for older deployments (adds new columns idempotently):
 ALTER TABLE IF EXISTS "Job" ADD COLUMN IF NOT EXISTS "generatedEmail" TEXT;
+ALTER TABLE IF EXISTS "Job" ADD COLUMN IF NOT EXISTS "generatedResumeAlt" TEXT;
 
 -- ---------- Schema ----------
 
@@ -40,6 +41,7 @@ CREATE TABLE IF NOT EXISTS "Job" (
     "shortlistedAt" TIMESTAMP(3),
     "appliedAt" TIMESTAMP(3),
     "generatedResume" TEXT,
+    "generatedResumeAlt" TEXT,
     "generatedCover" TEXT,
     "generatedEmail" TEXT,
     "fitAnalysis" TEXT,
