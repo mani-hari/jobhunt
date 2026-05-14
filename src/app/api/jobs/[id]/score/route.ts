@@ -10,7 +10,7 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     const result = await scoreJobById(params.id);
     if (!result) {
       return NextResponse.json(
-        { error: "Scoring unavailable — set GEMINI_API_KEY or check that the job exists." },
+        { error: "Scoring unavailable — set ANTHROPIC_API_KEY or check that the job exists." },
         { status: 400 }
       );
     }

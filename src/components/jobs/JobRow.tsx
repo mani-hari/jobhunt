@@ -19,6 +19,9 @@ interface Props {
   onApply?: () => void;
   generating?: boolean;
   detailHref?: string;
+  // Optional query string carrying the current filter state so the detail
+  // page can compute next/prev within that filtered list.
+  filterQuery?: string;
 }
 
 export function JobRow({
@@ -30,8 +33,10 @@ export function JobRow({
   onGenerate,
   onApply,
   generating,
-  detailHref = `/jobs/${job.id}`,
+  detailHref,
+  filterQuery,
 }: Props) {
+  const href = detailHref ?? `/jobs/${job.id}${filterQuery ? `?${filterQuery}` : ""}`;
   const blurb = companyBlurb(job.description, job.company);
   const isShortlisted = job.status !== "discovered" && job.status !== "deleted";
   const isApplied = job.appliedAt != null;
@@ -57,7 +62,7 @@ export function JobRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div className="min-w-0">
-              <Link href={detailHref} className="block group">
+              <Link href={href} className="block group">
                 <h3 className="font-serif text-lg font-semibold text-ink-primary leading-snug group-hover:text-accent-blue transition">
                   {job.title}
                 </h3>
@@ -94,7 +99,7 @@ export function JobRow({
           </div>
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <Link href={detailHref}>
+            <Link href={href}>
               <Button size="sm" variant="secondary">View details</Button>
             </Link>
 

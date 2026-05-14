@@ -13,6 +13,7 @@ import type { Job } from "@/components/jobs/types";
 
 function paneText(job: Job, pane: Exclude<Pane, null>): string | null {
   if (pane === "resume") return job.generatedResume;
+  if (pane === "resumeAlt") return job.generatedResumeAlt;
   if (pane === "cover") return job.generatedCover;
   if (pane === "email") return job.generatedEmail;
   return job.fitAnalysis;
@@ -27,10 +28,11 @@ const STATUSES: JobStatus[] = [
   "hold",
 ];
 
-type Pane = "resume" | "cover" | "email" | "fit" | null;
+type Pane = "resume" | "resumeAlt" | "cover" | "email" | "fit" | null;
 
 const PANE_LABEL: Record<Exclude<Pane, null>, string> = {
-  resume: "Tailored resume",
+  resume: "Resume (impact-led)",
+  resumeAlt: "Resume (skills-led)",
   cover: "Cover letter",
   email: "Outreach email",
   fit: "Fit analysis",
@@ -117,8 +119,13 @@ export function ApplicationsView() {
                 </td>
                 <td className="px-4 py-3 text-right space-x-1">
                   <Button size="sm" variant="secondary" onClick={() => { setOpenJob(j); setPane("resume"); }}>
-                    Resume
+                    Resume A
                   </Button>
+                  {j.generatedResumeAlt ? (
+                    <Button size="sm" variant="secondary" onClick={() => { setOpenJob(j); setPane("resumeAlt"); }}>
+                      Resume B
+                    </Button>
+                  ) : null}
                   <Button size="sm" variant="secondary" onClick={() => { setOpenJob(j); setPane("cover"); }}>
                     Cover letter
                   </Button>

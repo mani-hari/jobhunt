@@ -8,6 +8,7 @@ import { Card, CardSection } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
 import { Button } from "@/components/ui/Button";
 import { ScoreBar } from "@/components/jobs/ScoreBar";
+import { JobNav } from "@/components/jobs/JobNav";
 import { formatSalary, timeAgo } from "@/lib/format";
 import { STATUS_LABEL, type JobStatus } from "@/lib/types";
 import type { Job } from "@/components/jobs/types";
@@ -93,6 +94,7 @@ export function JobDetailView({ job }: { job: Job }) {
             </div>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
+            <JobNav currentId={job.id} />
             {!isShortlisted ? (
               <Button onClick={() => patch.mutate("shortlisted")} disabled={patch.isPending}>
                 Add to shortlist ⭐
@@ -143,7 +145,20 @@ export function JobDetailView({ job }: { job: Job }) {
           ) : null}
 
           {job.generatedResume ? (
-            <Materials title="Tailored resume" content={job.generatedResume} filename={`${job.company}-resume.md`} />
+            <Materials
+              title="Resume — impact-led variant"
+              subtitle="Leads each bullet with outcome, number, and scope. Good default for most roles."
+              content={job.generatedResume}
+              filename={`${job.company}-resume-impact.md`}
+            />
+          ) : null}
+          {job.generatedResumeAlt ? (
+            <Materials
+              title="Resume — skills-led variant"
+              subtitle="Leads with technical/domain match. Try this when the JD is keyword-heavy or ATS-strict."
+              content={job.generatedResumeAlt}
+              filename={`${job.company}-resume-skills.md`}
+            />
           ) : null}
           {job.generatedCover ? (
             <Materials title="Cover letter" content={job.generatedCover} filename={`${job.company}-cover.md`} />
@@ -203,13 +218,28 @@ export function JobDetailView({ job }: { job: Job }) {
   );
 }
 
-function Materials({ title, content, filename }: { title: string; content: string; filename: string }) {
+function Materials({
+  title,
+  subtitle,
+  content,
+  filename,
+}: {
+  title: string;
+  subtitle?: string;
+  content: string;
+  filename: string;
+}) {
   return (
     <Card>
       <CardSection>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-serif text-lg font-semibold">{title}</h2>
-          <div className="flex gap-2">
+        <div className="flex items-start justify-between gap-4 mb-3">
+          <div>
+            <h2 className="font-serif text-lg font-semibold">{title}</h2>
+            {subtitle ? (
+              <p className="text-xs text-ink-muted mt-0.5">{subtitle}</p>
+            ) : null}
+          </div>
+          <div className="flex gap-2 shrink-0">
             <Button
               size="sm"
               variant="secondary"

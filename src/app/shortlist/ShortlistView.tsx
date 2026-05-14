@@ -107,6 +107,7 @@ export function ShortlistView() {
             onGenerate={() => generateOne(job.id)}
             onRemove={() => removeMut.mutate(job.id)}
             generating={busyId === job.id}
+            filterQuery="status=shortlisted&range=all"
           />
         ))}
       </div>
