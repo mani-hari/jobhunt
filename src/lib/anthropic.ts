@@ -232,6 +232,127 @@ Return JSON with a single key "titles".`;
 }
 
 // -----------------------------------------------------------------------------
+// v2 Pipeline job assets — single Opus call returns resume + cover + fit summary
+// -----------------------------------------------------------------------------
+
+export interface JobAssetsResult {
+  resume: string;       // ATS-formatted Markdown (single-column, Calibri rules)
+  coverLetter: string;  // Markdown, 3 paragraphs
+  fitSummary: string;   // 2 sentences: match count + tip
+}
+
+const JOB_ASSETS_SCHEMA = {
+  type: "object",
+  properties: {
+    resume: {
+      type: "string",
+      description: "ATS-optimised resume in clean Markdown. Single-column. Sections: Professional Summary, Technical Skills, Professional Experience, Education & Certifications. 2 pages max. Mirror JD keywords naturally. Address career break once in the summary.",
+    },
+    cover_letter: {
+      type: "string",
+      description: "Cover letter in Markdown. 3 short paragraphs, under 250 words. P1: why this role + company. P2: 2 concrete achievements matching JD. P3: career-gap sentence (if relevant) + availability. No clichés.",
+    },
+    fit_summary: {
+      type: "string",
+      description: "Exactly 2 sentences. Sentence 1: how many key requirements match and which ones. Sentence 2: any gap and a specific apply tip. Be honest and practical.",
+    },
+  },
+  required: ["resume", "cover_letter", "fit_summary"],
+  additionalProperties: false,
+} as const;
+
+export async function generateJobAssets(args: {
+  jobTitle: string;
+  company: string;
+  jobDescription: string;
+  candidateResume: string;
+  careerGapNote: string;
+  keyStrengths: string[];
+  firstName?: string | null;
+  lastName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  linkedInUrl?: string | null;
+}): Promise<JobAssetsResult> {
+  const persona = await loadPersona();
+
+  const contactLine = [
+    args.firstName && args.lastName ? `${args.firstName} ${args.lastName}` : null,
+    args.email,
+    args.phone,
+    args.linkedInUrl,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+
+  const userPrompt = `Generate ATS-optimised application materials for Archana for this role. Follow soul.md precisely.
+
+TARGET JOB:
+Title: ${args.jobTitle}
+Company: ${args.company}
+Description:
+${args.jobDescription.slice(0, 8000)}
+
+CANDIDATE'S RESUME (source of truth — every claim must come from here):
+${args.candidateResume}
+
+CONTACT INFO FOR RESUME HEADER: ${contactLine || "use what's in the resume"}
+CAREER CONTEXT: ${args.careerGapNote}
+KEY STRENGTHS: ${args.keyStrengths.join(", ")}
+
+ATS FORMATTING RULES FOR RESUME (non-negotiable):
+1. Single-column layout — no sidebars, no two-column grids.
+2. Section order: Professional Summary → Technical Skills → Professional Experience → Education & Certifications.
+3. Professional Summary: 3-4 lines, mentions the target role title and "${args.company}" by name.
+4. Quantify achievements using numbers from the actual resume.
+5. Mirror JD keywords naturally — never stuff.
+6. No fabrication — every fact from the candidate's resume.
+7. Career gap: one brief professional note in the Professional Summary ("Returning after ~1.4-year personal/family chapter, fully re-engaged").
+8. 2 pages maximum.
+9. Use H2 for section headings, bullet lists for experience bullets, bold for company/title lines.
+10. Contact info at the top: Name | Email | Phone | Location | LinkedIn.
+
+COVER LETTER RULES:
+- 3 paragraphs, under 250 words.
+- P1: why THIS company and THIS role (specific hook from the JD).
+- P2: 2 concrete achievements matching their stated needs.
+- P3: career-gap sentence + availability + warm close (never "I look forward to hearing from you").
+- Never start with "I am writing to apply for".
+
+Return JSON only.`;
+
+  const response = await client().messages.create({
+    model: GENERATION_MODEL,
+    max_tokens: 16000,
+    thinking: { type: "adaptive" },
+    output_config: {
+      effort: "high",
+      format: {
+        type: "json_schema",
+        schema: JOB_ASSETS_SCHEMA,
+      },
+    },
+    system: [
+      {
+        type: "text",
+        text: persona,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    messages: [{ role: "user", content: userPrompt }],
+  } as Anthropic.MessageCreateParamsNonStreaming);
+
+  const raw = firstTextBlock(response.content);
+  const parsed = extractJson<{ resume: string; cover_letter: string; fit_summary: string }>(raw);
+
+  return {
+    resume: parsed.resume,
+    coverLetter: parsed.cover_letter,
+    fitSummary: parsed.fit_summary,
+  };
+}
+
+// -----------------------------------------------------------------------------
 // Resume / cover letter / outreach email / fit — single Opus 4.7 call returns all 4
 // -----------------------------------------------------------------------------
 

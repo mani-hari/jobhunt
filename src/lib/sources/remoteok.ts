@@ -1,5 +1,5 @@
-import type { NormalizedJob } from "@/lib/types";
-import type { SourceContext } from "./index";
+import { NormalizedJob } from "@/lib/types";
+import { FetchContext } from "./index";
 
 interface RemoteOKJob {
   id?: string;
@@ -13,32 +13,36 @@ interface RemoteOKJob {
   tags?: string[];
 }
 
-export async function fetchRemoteOK(ctx: SourceContext): Promise<NormalizedJob[]> {
-  const r = await fetch("https://remoteok.com/api", {
-    cache: "no-store",
-    headers: { "user-agent": "archana-job-hunter/1.0" },
-  });
-  if (!r.ok) return [];
-  const list = (await r.json()) as Array<RemoteOKJob | Record<string, unknown>>;
-  const jobs = list.filter((x): x is RemoteOKJob => !!(x as RemoteOKJob).position);
+export async function fetchRemoteOK(ctx: FetchContext): Promise<NormalizedJob[]> {
+  try {
+    const r = await fetch("https://remoteok.com/api", {
+      cache: "no-store",
+      headers: { "user-agent": "archana-job-hunter/1.0" },
+    });
+    if (!r.ok) return [];
+    const list = (await r.json()) as Array<RemoteOKJob | Record<string, unknown>>;
+    const jobs = list.filter((x): x is RemoteOKJob => !!(x as RemoteOKJob).position);
 
-  const kwLower = ctx.keywords.map((k) => k.toLowerCase());
-  const matches = jobs.filter((j) => {
-    const hay = `${j.position} ${(j.tags ?? []).join(" ")}`.toLowerCase();
-    return kwLower.some((kw) => hay.includes(kw));
-  });
+    const kwLower = ctx.keywords.map((k) => k.toLowerCase());
+    const matches = jobs.filter((j) => {
+      const hay = `${j.position} ${(j.tags ?? []).join(" ")}`.toLowerCase();
+      return kwLower.some((kw) => hay.includes(kw));
+    });
 
-  return matches.slice(0, 50).map((j) => ({
-    title: j.position ?? "Untitled",
-    company: j.company ?? "Unknown",
-    location: j.location ?? "Remote",
-    description: stripHtml(j.description ?? ""),
-    sourceUrl: j.apply_url || j.url || `https://remoteok.com/remote-jobs/${j.id}`,
-    source: "remoteok",
-    postedAt: j.date ? new Date(j.date) : null,
-    jobType: "remote",
-    industry: (j.tags ?? []).slice(0, 3).join(", ") || null,
-  }));
+    return matches.slice(0, ctx.limit).map((j) => ({
+      title: j.position ?? "Untitled",
+      company: j.company ?? "Unknown",
+      location: j.location ?? "Remote",
+      description: stripHtml(j.description ?? ""),
+      sourceUrl: j.apply_url || j.url || `https://remoteok.com/remote-jobs/${j.id}`,
+      source: "remoteok" as const,
+      postedAt: j.date ? new Date(j.date) : undefined,
+      jobType: "remote",
+      autoApplyEligible: false,
+    }));
+  } catch {
+    return [];
+  }
 }
 
 function stripHtml(s: string) {

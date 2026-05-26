@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
+import { log } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function GET() {
-  const resume = await prisma.resume.findFirst({ orderBy: { uploadedAt: "desc" } });
+  const resume = await db.resume.findFirst({ orderBy: { uploadedAt: "desc" } });
   if (!resume) return NextResponse.json(null);
   return NextResponse.json({
     id: resume.id,
@@ -38,14 +39,21 @@ export async function POST(req: Request) {
     );
   }
 
-  const created = await prisma.resume.create({
+  const created = await db.resume.create({
     data: { fileName: file.name, rawText },
+  });
+
+  const wordCount = rawText.split(/\s+/).filter(Boolean).length;
+  await log({
+    level: "info",
+    category: "system",
+    message: `Resume uploaded: ${file.name} (${wordCount} words extracted)`,
   });
 
   return NextResponse.json({
     id: created.id,
     fileName: created.fileName,
-    wordCount: rawText.split(/\s+/).filter(Boolean).length,
+    wordCount,
     uploadedAt: created.uploadedAt,
   });
 }

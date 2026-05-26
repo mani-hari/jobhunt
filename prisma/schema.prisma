@@ -8,73 +8,113 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Keyword {
-  id              String   @id @default(cuid())
-  original        String
-  canonicalTitles String
-  createdAt       DateTime @default(now())
+model Pipeline {
+  id              String        @id @default(cuid())
+  name            String
+  keyword         String
+  canonicalTitles String        @default("[]") // JSON string[]
+  platforms       String        @default("[]") // JSON string[]
+  autoShortlist   Boolean       @default(false)
+  autoApply       Boolean       @default(false)
+  autoApplyTimes  String        @default("[]") // JSON e.g. ["08:00","17:00"]
+  fetchLimit      Int           @default(20)
+  lastFetchedAt   DateTime?
+  createdAt       DateTime      @default(now())
+  pipelineJobs    PipelineJob[]
+  logs            Log[]
+
+  @@index([createdAt])
+}
+
+model PipelineJob {
+  id             String    @id @default(cuid())
+  pipelineId     String
+  jobId          String
+  stage          String    @default("search") // search | shortlist
+  shortlistedAt  DateTime?
+  shortlistedHow String?                      // auto | manual
+
+  generatedResume String?                     // Markdown → used to build .docx
+  generatedCover  String?                     // Markdown
+  fitSummary      String?                     // 2-line text
+  assetStatus     String    @default("pending") // pending | generating | ready | failed
+
+  applyMethod String?                         // auto | manual
+  applyStatus String?                         // applying | applied | failed | opened
+  appliedAt   DateTime?
+  applyError  String?
+  createdAt   DateTime  @default(now())
+
+  pipeline Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+  job      Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([pipelineId, jobId])
+  @@index([pipelineId, stage])
+  @@index([assetStatus])
 }
 
 model Job {
-  id              String    @id @default(cuid())
-  title           String
-  company         String
-  location        String
-  description     String
-  jobType         String?
-  employment      String?
-  level           String?
-  industry        String?
-  salaryMin       Float?
-  salaryMax       Float?
-  sourceUrl       String
-  source          String
-  postedAt        DateTime?
-  fetchedAt       DateTime  @default(now())
-  dedupeHash      String    @unique
-  score           Int?
-  scoreSummary    String?
-  scoreDetails    String?
-  status          String    @default("discovered")
-  shortlistedAt   DateTime?
-  appliedAt       DateTime?
-  generatedResume    String?
-  generatedResumeAlt String?
-  generatedCover     String?
-  generatedEmail     String?
-  fitAnalysis        String?
+  id                String        @id @default(cuid())
+  title             String
+  company           String
+  location          String
+  description       String
+  jobType           String?       // remote | onsite | hybrid
+  employment        String?       // fulltime | parttime | contract
+  salaryMin         Float?
+  salaryMax         Float?
+  sourceUrl         String
+  source            String        // greenhouse | lever | linkedin | adzuna | ...
+  postedAt          DateTime?
+  fetchedAt         DateTime      @default(now())
+  dedupeHash        String        @unique
+  autoApplyEligible Boolean       @default(false)
+  score             Int?
+  scoreSummary      String?
+  pipelineJobs      PipelineJob[]
 
-  @@index([status])
   @@index([fetchedAt])
+  @@index([score])
 }
 
 model Resume {
   id         String   @id @default(cuid())
   fileName   String
   rawText    String
+  filePath   String   @default("")
   uploadedAt DateTime @default(now())
-}
-
-model CompanyBoard {
-  id        String   @id @default(cuid())
-  ats       String   // "greenhouse" | "lever" | "ashby"
-  slug      String   // board slug, e.g. "stripe"
-  name      String   // human-readable label
-  active    Boolean  @default(true)
-  createdAt DateTime @default(now())
-
-  @@unique([ats, slug])
 }
 
 model Settings {
   id                  String  @id @default("singleton")
   preferredLocation   String  @default("Toronto, Canada")
   openToRemote        Boolean @default(true)
-  openToRelocation    String  @default("Within Canada")
   minSalary           Float?
-  preferredIndustries String  @default("[\"Banking\",\"Financial Services\",\"Insurance\",\"Fintech\",\"Tech\"]")
+  preferredIndustries String  @default("[\"Banking\",\"Financial Services\",\"Fintech\",\"Tech\"]")
   dealBreakers        String?
   yearsExperience     Int     @default(7)
-  keyStrengths        String  @default("[\"Data Governance\",\"Business Analysis\",\"Requirements Gathering\",\"Stakeholder Management\",\"Power BI\",\"SQL\"]")
-  careerGapNote       String  @default("Returning after ~1.4 year career break for personal/family reasons — fully re-engaged and ready")
+  keyStrengths        String  @default("[\"Data Governance\",\"Business Analysis\",\"Power BI\",\"SQL\"]")
+  careerGapNote       String  @default("Returning after ~1.4 year career break — fully re-engaged")
+  firstName           String?
+  lastName            String?
+  email               String?
+  phone               String?
+  linkedInUrl         String?
+}
+
+model Log {
+  id         String    @id @default(cuid())
+  timestamp  DateTime  @default(now())
+  level      String                     // info | warn | error
+  category   String                     // fetch | score | generate | apply | schedule | system
+  pipelineId String?
+  jobTitle   String?
+  message    String
+  detail     String?
+  pipeline   Pipeline? @relation(fields: [pipelineId], references: [id], onDelete: SetNull)
+
+  @@index([timestamp(sort: Desc)])
+  @@index([level])
+  @@index([category])
+  @@index([pipelineId])
 }

@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
 async function ensure() {
-  return prisma.settings.upsert({
+  return db.settings.upsert({
     where: { id: "singleton" },
     update: {},
     create: { id: "singleton" },
@@ -23,18 +23,22 @@ export async function GET() {
 export async function PUT(req: Request) {
   const body = await req.json();
   await ensure();
-  const updated = await prisma.settings.update({
+  const updated = await db.settings.update({
     where: { id: "singleton" },
     data: {
       preferredLocation: body.preferredLocation,
       openToRemote: !!body.openToRemote,
-      openToRelocation: body.openToRelocation,
       minSalary: body.minSalary ?? null,
       preferredIndustries: JSON.stringify(body.preferredIndustries ?? []),
       dealBreakers: body.dealBreakers ?? null,
       yearsExperience: Number(body.yearsExperience ?? 0),
       keyStrengths: JSON.stringify(body.keyStrengths ?? []),
       careerGapNote: body.careerGapNote ?? "",
+      firstName: body.firstName ?? null,
+      lastName: body.lastName ?? null,
+      email: body.email ?? null,
+      phone: body.phone ?? null,
+      linkedInUrl: body.linkedInUrl ?? null,
     },
   });
   return NextResponse.json({

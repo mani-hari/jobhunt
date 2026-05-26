@@ -1,5 +1,5 @@
-import type { NormalizedJob } from "@/lib/types";
-import type { SourceContext } from "./index";
+import { NormalizedJob } from "@/lib/types";
+import { FetchContext } from "./index";
 import { matchesKeywords } from "./match";
 
 interface GreenhouseJob {
@@ -8,18 +8,13 @@ interface GreenhouseJob {
   absolute_url: string;
   updated_at: string;
   location?: { name?: string };
-  content?: string; // sometimes returned with ?content=true
+  content?: string;
   departments?: Array<{ name: string }>;
   offices?: Array<{ name: string; location?: string }>;
 }
 
-interface GreenhouseDetail {
-  content?: string;
-  metadata?: Array<{ name: string; value: string }>;
-}
-
 export async function fetchGreenhouse(
-  ctx: SourceContext,
+  ctx: FetchContext,
   boards: Array<{ slug: string; name: string }>
 ): Promise<NormalizedJob[]> {
   const out: NormalizedJob[] = [];
@@ -31,7 +26,7 @@ export async function fetchGreenhouse(
       if (!r.ok) continue;
       const data = (await r.json()) as { jobs?: GreenhouseJob[] };
 
-      for (const j of data.jobs ?? []) {
+      for (const j of (data.jobs ?? []).slice(0, ctx.limit)) {
         if (!matchesKeywords(j.title, ctx.keywords)) continue;
 
         const location =
@@ -40,8 +35,9 @@ export async function fetchGreenhouse(
           j.offices?.[0]?.name ??
           "Unspecified";
 
+        if (!locationOk(location, ctx)) continue;
+
         const description = decodeHtml(stripHtml(j.content ?? ""));
-        if (!locationLooksOk(location, ctx)) continue;
 
         out.push({
           title: j.title,
@@ -50,13 +46,13 @@ export async function fetchGreenhouse(
           description,
           sourceUrl: j.absolute_url,
           source: "greenhouse",
-          postedAt: j.updated_at ? new Date(j.updated_at) : null,
-          jobType: inferRemote(location, description),
-          industry: j.departments?.[0]?.name ?? null,
+          postedAt: j.updated_at ? new Date(j.updated_at) : undefined,
+          jobType: inferJobType(location, description),
+          autoApplyEligible: true,
         });
       }
     } catch {
-      // skip a broken board, keep going
+      // skip broken board, continue
     }
   }
 
@@ -66,6 +62,7 @@ export async function fetchGreenhouse(
 function stripHtml(s: string) {
   return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
+
 function decodeHtml(s: string) {
   return s
     .replace(/&amp;/g, "&")
@@ -76,17 +73,16 @@ function decodeHtml(s: string) {
     .replace(/&nbsp;/g, " ");
 }
 
-function inferRemote(location: string, description: string): string | null {
+function inferJobType(location: string, description: string): string | undefined {
   const hay = `${location} ${description}`.toLowerCase();
   if (hay.includes("remote")) return "remote";
   if (hay.includes("hybrid")) return "hybrid";
-  return null;
+  return undefined;
 }
 
-function locationLooksOk(location: string, ctx: SourceContext) {
+function locationOk(location: string, ctx: FetchContext) {
   const loc = location.toLowerCase();
-  if (ctx.remote && /remote|anywhere|north america/.test(loc)) return true;
-  // Match Canadian cities or generic Canada mentions; loose match on user's location.
+  if (ctx.openToRemote && /remote|anywhere|north america|worldwide/.test(loc)) return true;
   if (/canada|ontario|toronto|vancouver|montreal|calgary|ottawa|waterloo|halifax|edmonton|quebec/.test(loc)) return true;
   const target = ctx.location.split(",")[0].trim().toLowerCase();
   return target.length > 0 && loc.includes(target);

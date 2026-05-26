@@ -1,19 +1,8 @@
-import { prisma } from "@/lib/db";
-import { isAnthropicConfigured, scoreJob } from "@/lib/anthropic";
-import type { ScoreDetails } from "@/lib/types";
+import { db } from "@/lib/db";
+import { isAnthropicConfigured, scoreJob, JobScoreResult } from "@/lib/anthropic";
 
-interface SettingsLike {
-  preferredLocation: string;
-  openToRemote: boolean;
-  yearsExperience: number;
-  preferredIndustries: string[];
-  keyStrengths: string[];
-  careerGapNote: string;
-  dealBreakers: string | null;
-}
-
-async function loadSettings(): Promise<SettingsLike> {
-  const s = await prisma.settings.upsert({
+async function loadSettings() {
+  const s = await db.settings.upsert({
     where: { id: "singleton" },
     update: {},
     create: { id: "singleton" },
@@ -22,15 +11,15 @@ async function loadSettings(): Promise<SettingsLike> {
     preferredLocation: s.preferredLocation,
     openToRemote: s.openToRemote,
     yearsExperience: s.yearsExperience,
-    preferredIndustries: JSON.parse(s.preferredIndustries),
-    keyStrengths: JSON.parse(s.keyStrengths),
+    preferredIndustries: JSON.parse(s.preferredIndustries) as string[],
+    keyStrengths: JSON.parse(s.keyStrengths) as string[],
     careerGapNote: s.careerGapNote,
     dealBreakers: s.dealBreakers,
   };
 }
 
-export async function scoreJobById(id: string): Promise<ScoreDetails | null> {
-  const job = await prisma.job.findUnique({ where: { id } });
+export async function scoreJobById(id: string): Promise<JobScoreResult | null> {
+  const job = await db.job.findUnique({ where: { id } });
   if (!job) return null;
   if (!isAnthropicConfigured()) return null;
 
@@ -45,59 +34,53 @@ export async function scoreJobById(id: string): Promise<ScoreDetails | null> {
     ...settings,
   });
 
-  await prisma.job.update({
+  await db.job.update({
     where: { id },
-    data: {
-      score: result.score,
-      scoreSummary: result.summary,
-      scoreDetails: JSON.stringify(result),
-    },
+    data: { score: result.score, scoreSummary: result.summary },
   });
 
   return result;
 }
 
-export async function scoreUnscoredJobs(limit = 50): Promise<{ scored: number; failed: number; remaining: number }> {
-  if (!isAnthropicConfigured()) return { scored: 0, failed: 0, remaining: 0 };
+export async function scoreUnscoredJobs(
+  pipelineId?: string,
+  limit = 50
+): Promise<{ scored: number; failed: number }> {
+  if (!isAnthropicConfigured()) return { scored: 0, failed: 0 };
 
   const settings = await loadSettings();
-  const candidates = await prisma.job.findMany({
-    where: { score: null, status: { not: "deleted" } },
-    orderBy: [{ postedAt: "desc" }, { fetchedAt: "desc" }],
+
+  const candidates = await db.pipelineJob.findMany({
+    where: {
+      ...(pipelineId ? { pipelineId } : {}),
+      job: { score: null },
+    },
+    include: { job: true },
     take: limit,
   });
 
   let scored = 0;
   let failed = 0;
-  for (const job of candidates) {
+  for (const pj of candidates) {
     try {
       const result = await scoreJob({
-        title: job.title,
-        company: job.company,
-        location: job.location,
-        jobType: job.jobType,
-        employment: job.employment,
-        description: job.description,
+        title: pj.job.title,
+        company: pj.job.company,
+        location: pj.job.location,
+        jobType: pj.job.jobType,
+        employment: pj.job.employment,
+        description: pj.job.description,
         ...settings,
       });
-      await prisma.job.update({
-        where: { id: job.id },
-        data: {
-          score: result.score,
-          scoreSummary: result.summary,
-          scoreDetails: JSON.stringify(result),
-        },
+      await db.job.update({
+        where: { id: pj.job.id },
+        data: { score: result.score, scoreSummary: result.summary },
       });
       scored++;
-    } catch (err) {
-      console.error(`[auto-score] job ${job.id} failed`, err);
+    } catch {
       failed++;
     }
   }
 
-  const remaining = await prisma.job.count({
-    where: { score: null, status: { not: "deleted" } },
-  });
-
-  return { scored, failed, remaining };
+  return { scored, failed };
 }

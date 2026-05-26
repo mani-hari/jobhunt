@@ -1,5 +1,5 @@
-import type { NormalizedJob } from "@/lib/types";
-import type { SourceContext } from "./index";
+import { NormalizedJob } from "@/lib/types";
+import { FetchContext } from "./index";
 import { matchesKeywords } from "./match";
 
 interface LeverJob {
@@ -11,7 +11,6 @@ interface LeverJob {
   categories?: {
     location?: string;
     team?: string;
-    department?: string;
     commitment?: string;
   };
   workplaceType?: string;
@@ -20,7 +19,7 @@ interface LeverJob {
 }
 
 export async function fetchLever(
-  ctx: SourceContext,
+  ctx: FetchContext,
   boards: Array<{ slug: string; name: string }>
 ): Promise<NormalizedJob[]> {
   const out: NormalizedJob[] = [];
@@ -32,11 +31,10 @@ export async function fetchLever(
       if (!r.ok) continue;
       const list = (await r.json()) as LeverJob[];
 
-      for (const j of list) {
+      for (const j of list.slice(0, ctx.limit)) {
         if (!matchesKeywords(j.text, ctx.keywords)) continue;
-
         const location = j.categories?.location ?? "Unspecified";
-        if (!locationLooksOk(location, ctx, j.workplaceType)) continue;
+        if (!locationOk(location, ctx, j.workplaceType)) continue;
 
         const description = j.descriptionPlain ?? stripHtml(j.description ?? "");
         out.push({
@@ -46,10 +44,10 @@ export async function fetchLever(
           description,
           sourceUrl: j.hostedUrl || j.applyUrl || "",
           source: "lever",
-          postedAt: j.createdAt ? new Date(j.createdAt) : null,
+          postedAt: j.createdAt ? new Date(j.createdAt) : undefined,
           employment: mapCommitment(j.categories?.commitment),
           jobType: mapWorkplace(j.workplaceType, location),
-          industry: j.categories?.team ?? j.categories?.department ?? null,
+          autoApplyEligible: true,
         });
       }
     } catch {
@@ -64,26 +62,26 @@ function stripHtml(s: string) {
   return s.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function mapCommitment(c?: string): string | null {
-  if (!c) return null;
+function mapCommitment(c?: string): string | undefined {
+  if (!c) return undefined;
   const x = c.toLowerCase();
   if (x.includes("part")) return "parttime";
   if (x.includes("contract") || x.includes("temp")) return "contract";
   if (x.includes("full")) return "fulltime";
-  return null;
+  return undefined;
 }
 
-function mapWorkplace(w: string | undefined, location: string): string | null {
+function mapWorkplace(w: string | undefined, location: string): string | undefined {
   if (w === "remote") return "remote";
   if (w === "hybrid") return "hybrid";
   if (w === "on-site" || w === "onsite") return "onsite";
   if (/remote/i.test(location)) return "remote";
-  return null;
+  return undefined;
 }
 
-function locationLooksOk(location: string, ctx: SourceContext, workplace?: string) {
+function locationOk(location: string, ctx: FetchContext, workplace?: string) {
   const loc = location.toLowerCase();
-  if (ctx.remote && (workplace === "remote" || /remote|anywhere|north america/.test(loc))) return true;
+  if (ctx.openToRemote && (workplace === "remote" || /remote|anywhere|north america/.test(loc))) return true;
   if (/canada|ontario|toronto|vancouver|montreal|calgary|ottawa|waterloo|halifax|edmonton|quebec/.test(loc)) return true;
   const target = ctx.location.split(",")[0].trim().toLowerCase();
   return target.length > 0 && loc.includes(target);
